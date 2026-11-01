@@ -2,10 +2,36 @@
 import os
 from starlette.responses import PlainTextResponse, JSONResponse
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
 from pubmed import search_medical_literature as search_impl, fetch_medical_article as fetch_impl
 
-mcp = FastMCP('Hoc Y Evidence', stateless_http=True, json_response=True)
+# Accept the actual HTTPS hostname rather than the SDK's localhost-only default.
+# Keep DNS-rebinding protection enabled and restrict accepted hosts/origins.
+PUBLIC_HOST = "hoc-y-pubmed-mcp.onrender.com"
+SECURITY = TransportSecuritySettings(
+    enable_dns_rebinding_protection=True,
+    allowed_hosts=[
+        PUBLIC_HOST,
+        f"{PUBLIC_HOST}:*",
+        "127.0.0.1:*",
+        "localhost:*",
+    ],
+    allowed_origins=[
+        "https://chatgpt.com",
+        "https://platform.openai.com",
+        "https://chat.openai.com",
+        f"https://{PUBLIC_HOST}",
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+    ],
+)
+mcp = FastMCP(
+    'Hoc Y Evidence',
+    stateless_http=True,
+    json_response=True,
+    transport_security=SECURITY,
+)
 READ_ONLY_PUBLIC = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True)
 
 @mcp.tool(annotations=READ_ONLY_PUBLIC)
